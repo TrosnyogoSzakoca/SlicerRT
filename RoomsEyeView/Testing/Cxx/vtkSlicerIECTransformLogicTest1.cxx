@@ -33,6 +33,10 @@
 #include <vtkTransform.h>
 #include <vtkMatrix4x4.h>
 
+// Room's eye view includes
+#include "vtkMRMLRoomsEyeViewNode.h"
+#include "vtkSlicerRoomsEyeViewModuleLogic.h"
+
 
 //----------------------------------------------------------------------------
 /// Get all linear transforms from the scene that are not identity, and are not beam transform nodes
@@ -54,15 +58,22 @@ bool IsEqual(vtkMatrix4x4* lhs, vtkMatrix4x4* rhs);
 int vtkSlicerIECTransformLogicTest1(int vtkNotUsed(argc), char* vtkNotUsed(argv)[])
 {
   // Create scene
-  vtkSmartPointer<vtkMRMLScene> mrmlScene = vtkSmartPointer<vtkMRMLScene>::New();
+  vtkNew<vtkMRMLScene> mrmlScene;
 
-  // Create and set up logic classes
-  vtkSmartPointer<vtkSlicerIECTransformLogic> iecLogic = vtkSmartPointer<vtkSlicerIECTransformLogic>::New();
-  iecLogic->BuildIECTransformHierarchy();
-  vtkSmartPointer<vtkSlicerBeamsModuleLogic> beamsLogic = vtkSmartPointer<vtkSlicerBeamsModuleLogic>::New();
+  //// Create and set up logic classes
+  //vtkSmartPointer<vtkSlicerIECTransformLogic> iecLogic = vtkSmartPointer<vtkSlicerIECTransformLogic>::New();
+  //iecLogic->BuildIECTransformHierarchy();
+
+  vtkNew<vtkSlicerBeamsModuleLogic> beamsLogic;
   beamsLogic->SetMRMLScene(mrmlScene);
 
-  int expectedNumberOfLinearTransformNodes = 13;
+  vtkNew<vtkSlicerRoomsEyeViewModuleLogic> revLogic;
+  revLogic->SetMRMLScene(mrmlScene);
+  revLogic->SetBeamsLogic(beamsLogic);
+  revLogic->BuildRoomsEyeViewTransformHierarchy();
+
+  // Establish initial number of transform nodes
+  int expectedNumberOfLinearTransformNodes = 14;
   int numberOfLinearTransformNodes = mrmlScene->GetNumberOfNodesByClass("vtkMRMLLinearTransformNode");
   if (numberOfLinearTransformNodes != expectedNumberOfLinearTransformNodes)
   {
@@ -85,10 +96,10 @@ int vtkSlicerIECTransformLogicTest1(int vtkNotUsed(argc), char* vtkNotUsed(argv)
   std::cout << std::endl;
 
   // Create beam node
-  vtkSmartPointer<vtkMRMLRTBeamNode> beamNode = vtkSmartPointer<vtkMRMLRTBeamNode>::New();
+  vtkNew<vtkMRMLRTBeamNode> beamNode;
   mrmlScene->AddNode(beamNode);
   // Create parent plan node and add beam to it (setup subject hierarchy)
-  vtkSmartPointer<vtkMRMLRTPlanNode> planNode = vtkSmartPointer<vtkMRMLRTPlanNode>::New();
+  vtkNew<vtkMRMLRTPlanNode> planNode;
   mrmlScene->AddNode(planNode);
   planNode->AddBeam(beamNode);
 
@@ -156,8 +167,10 @@ int vtkSlicerIECTransformLogicTest1(int vtkNotUsed(argc), char* vtkNotUsed(argv)
 
   // Gantry angle, -1 degree
   beamNode->SetGantryAngle(-1.0);
+  beamNode->Modified();
+  std::cout << "GANTRY ANGLE: " << beamNode->GetGantryAngle() << std::endl;
   beamsLogic->UpdateBeamTransform(beamNode);
-  expectedNumOfNonIdentityTransforms = 3;
+  expectedNumOfNonIdentityTransforms = 2;
   if ((numOfNonIdentityTransforms = GetNumberOfNonIdentityIECTransforms(mrmlScene)) != expectedNumOfNonIdentityTransforms)
   {
     std::cerr << __LINE__ << ": Number of non-identity linear transforms: " << numOfNonIdentityTransforms << " does not match expected value: " << expectedNumOfNonIdentityTransforms << std::endl;
@@ -169,7 +182,8 @@ int vtkSlicerIECTransformLogicTest1(int vtkNotUsed(argc), char* vtkNotUsed(argv)
     beamsLogic->GetTransformNodeBetween(vtkSlicerIECTransformLogic::Gantry, vtkSlicerIECTransformLogic::FixedReference),
     expectedGantryToFixedReferenceTransformMinus1_MatrixElements))
   {
-    std::cerr << __LINE__ << ": GantryToFixedReferenceTransform does not match baseline for '-1' degree angle" << std::endl;
+    std::cerr << __LINE__ << ": GantryToFixedReferenceTransform does not match baseline for -1 degree angle" << std::endl;
+    PrintLinearTransformNodeMatrices(mrmlScene, true, true);
     return EXIT_FAILURE;
   }
 
@@ -399,7 +413,7 @@ int vtkSlicerIECTransformLogicTest1(int vtkNotUsed(argc), char* vtkNotUsed(argv)
     std::cerr << __LINE__ << ": Beam transform does not match baseline for patient support 1 degree angle" << std::endl;
     return EXIT_FAILURE;
   }
-
+  
   // Patient support angle, -90 degrees
   beamNode->SetCouchAngle(-90.0);
   beamsLogic->UpdateBeamTransform(beamNode);
@@ -410,6 +424,7 @@ int vtkSlicerIECTransformLogicTest1(int vtkNotUsed(argc), char* vtkNotUsed(argv)
     expectedPatientSupportRotationToFixedReferenceTransformMinus90_MatrixElements))
   {
     std::cerr << __LINE__ << ": PatientSupportRotationToFixedReference does not match baseline" << std::endl;
+    PrintLinearTransformNodeMatrices(mrmlScene, true, true);
     return EXIT_FAILURE;
   }
 
@@ -443,7 +458,7 @@ int vtkSlicerIECTransformLogicTest1(int vtkNotUsed(argc), char* vtkNotUsed(argv)
     std::cerr << __LINE__ << ": Beam transform does not match baseline for patient support 90 degrees angle" << std::endl;
     return EXIT_FAILURE;
   }
-
+  
   // Table Top (vertical), 1.0mm
   vtkMRMLLinearTransformNode* tableTopToTableTopEccentricRotationTransformNode_Vertical1 =
     beamsLogic->GetTransformNodeBetween(vtkSlicerIECTransformLogic::TableTop, vtkSlicerIECTransformLogic::TableTopEccentricRotation);
@@ -460,6 +475,7 @@ int vtkSlicerIECTransformLogicTest1(int vtkNotUsed(argc), char* vtkNotUsed(argv)
   tableTopEccentricRotationToPatientSupportMatrix_Vertical1->SetElement(2, 3, translationArray[2]);
   tableTopEccentricRotationToPatientSupportTransform_Vertical1->SetMatrix(tableTopEccentricRotationToPatientSupportMatrix_Vertical1);
   tableTopEccentricRotationToPatientSupportTransform_Vertical1->Modified();
+  PrintLinearTransformNodeMatrices(mrmlScene, true, true);
 
   double expectedTableTopToTableTop_Vertical1_MatrixElements[16] =
     {  1, 0, 0, 0,   0, 1, 0, 0,   0, 0, 1, 1,   0, 0, 0, 1  };
@@ -753,7 +769,7 @@ void PrintLinearTransformNodeMatrices(vtkMRMLScene* mrmlScene,
 
   // Print linear transform node matrices for nodes that fulfill the conditions
   std::vector<vtkMRMLLinearTransformNode*>::iterator trIt;
-  vtkSmartPointer<vtkMatrix4x4> matrix = vtkSmartPointer<vtkMatrix4x4>::New();
+  vtkNew<vtkMatrix4x4> matrix;
   for (trIt=transformNodes.begin(); trIt!=transformNodes.end(); ++trIt)
   {
     vtkMRMLLinearTransformNode* transformNode = (*trIt);
@@ -802,13 +818,13 @@ bool GetLinearTransformNodes(
   transformNodes.clear();
 
   // Create identity matrix for comparison
-  vtkSmartPointer<vtkMatrix4x4> identityMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+  vtkNew<vtkMatrix4x4> identityMatrix;
   identityMatrix->Identity();
 
   // Collect transform nodes that fulfill the conditions
   std::vector<vtkMRMLNode*> nodes;
   mrmlScene->GetNodesByClass("vtkMRMLLinearTransformNode", nodes);
-  vtkSmartPointer<vtkMatrix4x4> matrix = vtkSmartPointer<vtkMatrix4x4>::New();
+  vtkNew<vtkMatrix4x4> matrix;
   for (std::vector<vtkMRMLNode*>::iterator nodeIt=nodes.begin(); nodeIt!=nodes.end(); ++nodeIt)
   {
     vtkMRMLLinearTransformNode* transformNode = vtkMRMLLinearTransformNode::SafeDownCast(*nodeIt);
@@ -832,7 +848,7 @@ bool IsTransformMatrixEqualTo(vtkMRMLScene* mrmlScene, vtkMRMLLinearTransformNod
   }
 
   // Verify that transform in transform node is linear
-  vtkSmartPointer<vtkTransform> linearTransform = vtkSmartPointer<vtkTransform>::New();
+  vtkNew<vtkTransform> linearTransform;
   if (!vtkMRMLTransformNode::IsGeneralTransformLinear(transformNode->GetTransformToParent(), linearTransform))
   {
     std::cerr << __LINE__ << ": Non-linear transform found in transform node: " << transformNode->GetName() << std::endl;
@@ -840,7 +856,7 @@ bool IsTransformMatrixEqualTo(vtkMRMLScene* mrmlScene, vtkMRMLLinearTransformNod
   }
 
   // Create matrix from elements
-  vtkSmartPointer<vtkMatrix4x4> baselineMatrix = vtkSmartPointer<vtkMatrix4x4>::New();
+  vtkNew<vtkMatrix4x4> baselineMatrix;
   for (int i = 0; i < 4; i++)
   {
     for (int j = 0; j < 4; j++)

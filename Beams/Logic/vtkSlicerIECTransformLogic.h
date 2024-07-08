@@ -133,14 +133,11 @@ public:
   {
     return CoordinateSystemsMap;
   }
-
-public:
   /// Get name of transform node between two coordinate systems
   /// \return Transform node name between the specified coordinate frames.
   ///   Note: If IEC does not specify a transform between the given coordinate frames, then there will be no node with the returned name.
   std::string GetTransformNameBetween(vtkSlicerIECTransformLogic::CoordinateSystemIdentifier fromFrame, vtkSlicerIECTransformLogic::CoordinateSystemIdentifier toFrame);
 
-public:
   std::vector< std::pair<CoordinateSystemIdentifier, CoordinateSystemIdentifier> > GetIecTransforms()
   {
     return IecTransforms;

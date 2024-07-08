@@ -79,13 +79,6 @@ public:
   /// Show/hide markups
   void ShowMarkupsNodes(bool toggled = false);
 
-  /// Set Planar Image module logic
-  void SetPlanarImageLogic(vtkSlicerPlanarImageModuleLogic* planarImageLogic);
-  /// Set Plastimatch DRR CLI module logic
-  void SetDRRComputationLogic(vtkSlicerCLIModuleLogic* plastimatchDrrLogic);
-  /// Set Beams module logic
-  void SetBeamsLogic(vtkSlicerBeamsModuleLogic* beamsLogic);
-
   /// Compute DRR image
   /// \param parameterNode - parameters of DRR image computation
   /// \param ctInputVolume - CT volume
@@ -192,15 +185,6 @@ private:
   bool SetupGeometry( vtkMRMLDrrImageComputationNode* parameterNode, vtkMRMLScalarVolumeNode* drrVolumeNode);
   /// IEC Transformation from Gantry -> RAS (without collimator)
   vtkMRMLLinearTransformNode* UpdateImageTransformFromBeam(vtkMRMLRTBeamNode* node);
-
-  /// Planar Image logic instance
-  vtkSlicerPlanarImageModuleLogic* PlanarImageLogic;
-  /// Plastimatch DRR computation logic instance
-  vtkSlicerCLIModuleLogic* PlastimatchDRRComputationLogic;
-  /// Beams logic instance
-  vtkSlicerBeamsModuleLogic* BeamsLogic;
-  /// Rooms eye view logic instance
-  vtkSlicerRoomsEyeViewModuleLogic* REVLogic;
 };
 
 #endif

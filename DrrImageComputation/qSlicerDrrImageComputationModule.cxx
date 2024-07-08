@@ -110,44 +110,6 @@ QStringList qSlicerDrrImageComputationModule::dependencies() const
 void qSlicerDrrImageComputationModule::setup()
 {
   this->Superclass::setup();
-
-  vtkSlicerDrrImageComputationLogic* drrImageComputationLogic = vtkSlicerDrrImageComputationLogic::SafeDownCast(this->logic());
-
-  // Set planar image logic to the logic
-  qSlicerAbstractCoreModule* planarImageModule = qSlicerCoreApplication::application()->moduleManager()->module("PlanarImage");
-  if (planarImageModule && drrImageComputationLogic)
-  {
-    vtkSlicerPlanarImageModuleLogic* planarImageLogic = vtkSlicerPlanarImageModuleLogic::SafeDownCast(planarImageModule->logic());
-    drrImageComputationLogic->SetPlanarImageLogic(planarImageLogic);
-  }
-  else
-  {
-    qCritical() << Q_FUNC_INFO << ": Planar Image module is not found";
-  }
-
-  // Set plastimatch DRR computation logic to the logic
-  qSlicerAbstractCoreModule* plastimatchDrrModule = qSlicerCoreApplication::application()->moduleManager()->module("plastimatch_slicer_drr");
-  if (plastimatchDrrModule && drrImageComputationLogic)
-  {
-    vtkSlicerCLIModuleLogic* plastimatchDrrLogic = vtkSlicerCLIModuleLogic::SafeDownCast(plastimatchDrrModule->logic());
-    drrImageComputationLogic->SetDRRComputationLogic(plastimatchDrrLogic);
-  }
-  else
-  {
-    qCritical() << Q_FUNC_INFO << ": Plastimatch DRR module is not found";
-  }
-
-  // Set beams logic to the logic
-  qSlicerAbstractCoreModule* beamsModule = qSlicerCoreApplication::application()->moduleManager()->module("Beams");
-  if (beamsModule && drrImageComputationLogic)
-  {
-    vtkSlicerBeamsModuleLogic* beamsLogic = vtkSlicerBeamsModuleLogic::SafeDownCast(beamsModule->logic());
-    drrImageComputationLogic->SetBeamsLogic(beamsLogic);
-  }
-  else
-  {
-    qCritical() << Q_FUNC_INFO << ": Beams module is not found";
-  }
 }
 
 //-----------------------------------------------------------------------------

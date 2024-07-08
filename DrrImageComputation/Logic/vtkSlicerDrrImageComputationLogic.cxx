@@ -85,10 +85,6 @@ vtkStandardNewMacro(vtkSlicerDrrImageComputationLogic);
 
 //----------------------------------------------------------------------------
 vtkSlicerDrrImageComputationLogic::vtkSlicerDrrImageComputationLogic()
-  :
-  PlanarImageLogic(nullptr),
-  PlastimatchDRRComputationLogic(nullptr),
-  BeamsLogic(nullptr)
 {
 }
 
@@ -967,13 +963,20 @@ vtkMRMLScalarVolumeNode* vtkSlicerDrrImageComputationLogic::ComputePlastimatchDR
     return nullptr;
   }
 
-  if (!this->PlastimatchDRRComputationLogic)
+  vtkSlicerCLIModuleLogic* PlastimatchDRRComputationLogic = vtkSlicerCLIModuleLogic::SafeDownCast(this->GetModuleLogic("slicer_plastimatch_drr"));
+  if (!PlastimatchDRRComputationLogic)
+  {
+    vtkErrorMacro("ComputePlastimatchDRR: PlastimatchDRRComputationLogic logic cannot be accessed");
+    return nullptr;
+  }
+
+  if (!PlastimatchDRRComputationLogic)
   {
     vtkErrorMacro("ComputePlastimatchDRR: slicer_plastimatch_drr logic is not set");
     return nullptr;
   }
 
-  vtkMRMLCommandLineModuleNode* cmdNode = this->PlastimatchDRRComputationLogic->CreateNodeInScene();
+  vtkMRMLCommandLineModuleNode* cmdNode = PlastimatchDRRComputationLogic->CreateNodeInScene();
   if (!cmdNode)
   {
     vtkErrorMacro("ComputePlastimatchDRR: failed to create CLI module node");
@@ -1091,7 +1094,7 @@ vtkMRMLScalarVolumeNode* vtkSlicerDrrImageComputationLogic::ComputePlastimatchDR
   cmdNode->SetParameterAsBool( "invertIntensity", parameterNode->GetInvertIntensityFlag());
   cmdNode->SetParameterAsString( "outputFormat", "raw");
 
-  this->PlastimatchDRRComputationLogic->ApplyAndWait( cmdNode, true);
+  PlastimatchDRRComputationLogic->ApplyAndWait( cmdNode, true);
 
   scene->RemoveNode(cmdNode);
   // TODO: Add results checking ( image size is valid, and computation didn't crash )
@@ -1279,8 +1282,15 @@ bool vtkSlicerDrrImageComputationLogic::SetupGeometry( vtkMRMLDrrImageComputatio
   displayedModelNode->SetAttribute(vtkMRMLSubjectHierarchyConstants::GetSubjectHierarchyExcludeFromTreeAttributeName().c_str(), "1");
   parameterNode->SetAndObserveDisplayedModelNode(displayedModelNode);
 
+  vtkSlicerPlanarImageModuleLogic* planarImageLogic = vtkSlicerPlanarImageModuleLogic::SafeDownCast(this->GetModuleLogic("PlanarImage"));
+  if (!planarImageLogic)
+  {
+    vtkErrorMacro("SetupGeometry: PlanarImage logic cannot be accessed");
+    return nullptr;
+  }
+
   // Create planar image model for the RT Image
-  this->PlanarImageLogic->CreateModelForPlanarImage(parameterNode);
+  planarImageLogic->CreateModelForPlanarImage(parameterNode);
 
   // Show the displayed planar image model by default
   displayedModelNode->SetDisplayVisibility(1);
@@ -1656,17 +1666,31 @@ vtkMRMLLinearTransformNode* vtkSlicerDrrImageComputationLogic::UpdateImageTransf
 
   vtkNew<vtkSlicerIECTransformLogic> iecLogic;
 
+  vtkSlicerBeamsModuleLogic* beamsLogic = vtkSlicerBeamsModuleLogic::SafeDownCast(this->GetModuleLogic("Beams"));
+  if (!beamsLogic)
+  {
+    vtkErrorMacro("UpdateImageTransformFromBeam: Beams logic cannot be accessed");
+    return nullptr;
+  }
+
   // Update transforms in IEC logic from beam node parameters
-  BeamsLogic->UpdateIECTransformsFromBeam(beamNode);
+  beamsLogic->UpdateIECTransformsFromBeam(beamNode);
   // (a BUG?) For RT Image correct orientation PatientSupport -> Fixed Reference MUST have a negative sign
   iecLogic->UpdatePatientSupportRotationToFixedReferenceTransform(-1. * beamNode->GetCouchAngle());
+
+  vtkSlicerRoomsEyeViewModuleLogic* revLogic = vtkSlicerRoomsEyeViewModuleLogic::SafeDownCast(this->GetModuleLogic("RoomsEyeView"));
+  if (!revLogic)
+  {
+    vtkErrorMacro("UpdateImageTransformFromBeam: RoomsEyeView logic cannot be accessed");
+    return nullptr;
+  }
 
   // Dynamic transform from Gantry to RAS
   // Transformation path:
   // Gantry -> FixedReference -> PatientSupport -> TableTopEccentricRotation -> TableTop -> Patient -> RAS
   using IEC = vtkSlicerIECTransformLogic::CoordinateSystemIdentifier;
   vtkNew<vtkGeneralTransform> generalTransform;
-  if (REVLogic->GetTransformNodeBetween( IEC::Gantry, IEC::RAS, generalTransform))
+  if (revLogic->GetTransformBetween( IEC::Gantry, IEC::RAS, generalTransform))
   {
     // Convert general transform to linear
     // This call also makes hard copy of the transform so that it doesn't change when other beam transforms change
@@ -1699,17 +1723,31 @@ bool vtkSlicerDrrImageComputationLogic::GetRtImageTransformMatrixFromBeam(vtkMRM
 
   vtkNew<vtkSlicerIECTransformLogic> iecLogic;
 
+  vtkSlicerBeamsModuleLogic* beamsLogic = vtkSlicerBeamsModuleLogic::SafeDownCast(this->GetModuleLogic("Beams"));
+  if (!beamsLogic)
+  {
+    vtkErrorMacro("GetRtImageTransformMatrixFromBeam: Beams logic cannot be accessed");
+    return nullptr;
+  }
+
   // Update transforms in IEC logic from beam node parameters
-  BeamsLogic->UpdateIECTransformsFromBeam(beamNode);
+  beamsLogic->UpdateIECTransformsFromBeam(beamNode);
   // (a BUG?) For RT Image correct orientation PatientSupport -> Fixed Reference MUST have a negative sign
   iecLogic->UpdatePatientSupportRotationToFixedReferenceTransform(-1. * beamNode->GetCouchAngle());
+
+  vtkSlicerRoomsEyeViewModuleLogic* revLogic = vtkSlicerRoomsEyeViewModuleLogic::SafeDownCast(this->GetModuleLogic("RoomsEyeView"));
+  if (!revLogic)
+  {
+    vtkErrorMacro("GetRtImageTransformMatrixFromBeam: RoomsEyeView logic cannot be accessed");
+    return nullptr;
+  }
 
   // Dynamic transform from Gantry to RAS
   // Transformation path:
   // Gantry -> FixedReference -> PatientSupport -> TableTopEccentricRotation -> TableTop -> Patient -> RAS
   using IEC = vtkSlicerIECTransformLogic::CoordinateSystemIdentifier;
   vtkNew<vtkGeneralTransform> generalTransform;
-  if (REVLogic->GetTransformNodeBetween( IEC::Gantry, IEC::RAS, generalTransform))
+  if (revLogic->GetTransformBetween( IEC::Gantry, IEC::RAS, generalTransform))
   {
     // Convert general transform to linear
     // This call also makes hard copy of the transform so that it doesn't change when other beam transforms change
@@ -2063,22 +2101,4 @@ vtkMRMLTableNode* vtkSlicerDrrImageComputationLogic::CreateProjectionsTableNode(
   table->AddColumn(statusString);
 
   return tableNode;
-}
-
-//------------------------------------------------------------------------------
-void vtkSlicerDrrImageComputationLogic::SetPlanarImageLogic(vtkSlicerPlanarImageModuleLogic* planarImageLogic)
-{
-  this->PlanarImageLogic = planarImageLogic;
-}
-
-//------------------------------------------------------------------------------
-void vtkSlicerDrrImageComputationLogic::SetDRRComputationLogic(vtkSlicerCLIModuleLogic* plastimatchDrrLogic)
-{
-  this->PlastimatchDRRComputationLogic = plastimatchDrrLogic;
-}
-
-//------------------------------------------------------------------------------
-void vtkSlicerDrrImageComputationLogic::SetBeamsLogic(vtkSlicerBeamsModuleLogic* beamsLogic)
-{
-  this->BeamsLogic = beamsLogic;
 }

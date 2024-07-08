@@ -44,8 +44,6 @@ class vtkVector3d;
 
 class vtkMRMLRoomsEyeViewNode;
 class vtkMRMLModelNode;
-class vtkSlicerIECTransformLogic;
-class vtkSlicerBeamsModuleLogic;
 
 /// \ingroup SlicerRt_QtModules_RoomsEyeView
 class VTK_SLICER_ROOMSEYEVIEW_LOGIC_EXPORT vtkSlicerRoomsEyeViewModuleLogic : public vtkSlicerModuleLogic
@@ -157,7 +155,7 @@ public:
   /// Get part type as string
   const char* GetTreatmentMachinePartTypeAsString(TreatmentMachinePartType type);
 
-  vtkGetObjectMacro(IECLogic, vtkSlicerIECTransformLogic);
+  vtkSetObjectMacro(BeamsLogic, vtkSlicerBeamsModuleLogic);
 
   vtkGetObjectMacro(GantryPatientCollisionDetection, vtkCollisionDetectionFilter);
   vtkGetObjectMacro(GantryTableTopCollisionDetection, vtkCollisionDetectionFilter);
@@ -175,7 +173,7 @@ public:
   /// @param transformForBeam - calculate dynamic transformation for beam model or other models
   /// (e.g. transformation from Patient RAS frame to Collimation frame: RAS -> Patient -> TableTop -> Eccentric -> Patient Support -> Fixed reference -> Gantry -> Collimator)  //TODO: Deprecated
   /// \return Success flag (false on any error)
-  bool GetTransformNodeBetween(vtkSlicerIECTransformLogic::CoordinateSystemIdentifier fromFrame, vtkSlicerIECTransformLogic::CoordinateSystemIdentifier toFrame,
+  bool GetTransformBetween(vtkSlicerIECTransformLogic::CoordinateSystemIdentifier fromFrame, vtkSlicerIECTransformLogic::CoordinateSystemIdentifier toFrame,
     vtkGeneralTransform* outputTransform, bool transformForBeam = true);
 
 protected:
@@ -183,17 +181,20 @@ protected:
   bool GetPatientBodyPolyData(vtkMRMLRoomsEyeViewNode* parameterNode, vtkPolyData* patientBodyPolyData);
 
 protected:
-  vtkSlicerIECTransformLogic* IECLogic;
+  vtkSlicerIECTransformLogic* IECLogic{nullptr};
 
-  vtkCollisionDetectionFilter* GantryPatientCollisionDetection;
-  vtkCollisionDetectionFilter* GantryTableTopCollisionDetection;
-  vtkCollisionDetectionFilter* GantryPatientSupportCollisionDetection;
+  /// This is needed to run the test. There is no MRML application logic when running tests, so need to set the module logi somehow.
+  vtkSlicerBeamsModuleLogic* BeamsLogic{nullptr};
 
-  vtkCollisionDetectionFilter* CollimatorPatientCollisionDetection;
-  vtkCollisionDetectionFilter* CollimatorTableTopCollisionDetection;
+  vtkCollisionDetectionFilter* GantryPatientCollisionDetection{nullptr};
+  vtkCollisionDetectionFilter* GantryTableTopCollisionDetection{nullptr};
+  vtkCollisionDetectionFilter* GantryPatientSupportCollisionDetection{nullptr};
 
-  vtkCollisionDetectionFilter* AdditionalModelsTableTopCollisionDetection;
-  vtkCollisionDetectionFilter* AdditionalModelsPatientSupportCollisionDetection;
+  vtkCollisionDetectionFilter* CollimatorPatientCollisionDetection{nullptr};
+  vtkCollisionDetectionFilter* CollimatorTableTopCollisionDetection{nullptr};
+
+  vtkCollisionDetectionFilter* AdditionalModelsTableTopCollisionDetection{nullptr};
+  vtkCollisionDetectionFilter* AdditionalModelsPatientSupportCollisionDetection{nullptr};
 
 protected:
   /// @brief Get coordinate system identifiers from frame system up to root system

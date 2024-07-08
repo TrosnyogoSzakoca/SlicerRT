@@ -180,9 +180,6 @@ void vtkSlicerBeamsModuleLogic::UpdateTransformForBeam(vtkMRMLRTBeamNode* beamNo
     vtkErrorMacro("UpdateTransformForBeam: Invalid MRML scene");
     return;
   }
-
-  //TODO: Use one IEC logic in a private scene for all beam transform updates?
-  
   this->UpdateBeamTransform(beamNode);
 }
 
@@ -206,8 +203,7 @@ void vtkSlicerBeamsModuleLogic::UpdateTransformForBeam(vtkMRMLScene* beamSequenc
     vtkErrorMacro("UpdateTransformForBeam: Invalid MRML scene");
     return;
   }
-
-  //TODO: Use one IEC logic in a private scene for all beam transform updates?
+  //TODO: beamSequenceScene is not used! Check what it is used for. The error message suggests that it is the main MRML scene, but its name says otherwise.
   this->UpdateBeamTransform(beamNode, beamTransformNode, isocenter);
 }
 
@@ -310,13 +306,14 @@ void vtkSlicerBeamsModuleLogic::UpdateBeamTransform(vtkMRMLRTBeamNode* beamNode)
     vtkErrorMacro("UpdateBeamTransform: Invalid beam node");
     return;
   }
-
+  std::cout << "GANTRY ANGLE 2: " << beamNode->GetGantryAngle() << std::endl;
   // Make sure transform node exists
   beamNode->CreateDefaultTransformNode();
 
   // Update transform for beam
   vtkMRMLLinearTransformNode* beamTransformNode = vtkMRMLLinearTransformNode::SafeDownCast(
     beamNode->GetParentTransformNode());
+  beamTransformNode->Modified();
   if (!beamTransformNode)
   {
     vtkErrorMacro("UpdateBeamTransform: Failed to access transform node of beam " << beamNode->GetName());
@@ -345,8 +342,10 @@ void vtkSlicerBeamsModuleLogic::UpdateBeamTransform(vtkMRMLRTBeamNode* beamNode,
 
   // Dynamic transform from Collimator to World
   vtkMRMLLinearTransformNode* collimatorToGantryTransformNode = this->GetTransformNodeBetween(vtkSlicerIECTransformLogic::Collimator, vtkSlicerIECTransformLogic::Gantry);
+  collimatorToGantryTransformNode->Modified();
   vtkNew<vtkGeneralTransform> beamGeneralTransform;
   collimatorToGantryTransformNode->GetTransformToWorld(beamGeneralTransform);
+  collimatorToGantryTransformNode->Modified();
 
   // Convert general transform to linear
   // This call also makes hard copy of the transform so that it doesn't change when other beam transforms change
@@ -360,6 +359,7 @@ void vtkSlicerBeamsModuleLogic::UpdateBeamTransform(vtkMRMLRTBeamNode* beamNode,
   // Set transform to beam node
   beamTransformNode->SetAndObserveTransformToParent(beamLinearTransform);
 }
+
 //-----------------------------------------------------------------------------
 vtkMRMLLinearTransformNode* vtkSlicerBeamsModuleLogic::GetTransformNodeBetween(
   vtkSlicerIECTransformLogic::CoordinateSystemIdentifier fromFrame, vtkSlicerIECTransformLogic::CoordinateSystemIdentifier toFrame)
@@ -371,8 +371,9 @@ vtkMRMLLinearTransformNode* vtkSlicerBeamsModuleLogic::GetTransformNodeBetween(
   }
 
   return vtkMRMLLinearTransformNode::SafeDownCast(
-    this->GetMRMLScene()->GetFirstNodeByName(this->IecLogic->GetTransformNameBetween(fromFrame, toFrame).c_str()));
+    this->GetMRMLScene()->GetFirstNodeByName(this->IECLogic->GetTransformNameBetween(fromFrame, toFrame).c_str()));
 }
+
 //-----------------------------------------------------------------------------
 void vtkSlicerBeamsModuleLogic::UpdateIECTransformsFromBeam(vtkMRMLRTBeamNode* beamNode, double* isocenter)
 {
@@ -390,17 +391,20 @@ void vtkSlicerBeamsModuleLogic::UpdateIECTransformsFromBeam(vtkMRMLRTBeamNode* b
       return;
     }
   }
+  std::cout << "GANTRY ANGLE3: " << beamNode->GetGantryAngle() << std::endl;
 
   // Make sure the transform hierarchy is set up
-  this->IecLogic->BuildIECTransformHierarchy();
+  //TODO: Do I need this every update?
+  //this->IECLogic->BuildIECTransformHierarchy();
 
-  this->IecLogic->UpdateGantryToFixedReferenceTransform(beamNode->GetGantryAngle());
-  this->IecLogic->UpdateCollimatorToGantryTransform(beamNode->GetCollimatorAngle());
-  this->IecLogic->UpdatePatientSupportRotationToFixedReferenceTransform(beamNode->GetCouchAngle());
+  this->IECLogic->UpdateGantryToFixedReferenceTransform(beamNode->GetGantryAngle());
+  this->IECLogic->UpdateCollimatorToGantryTransform(beamNode->GetCollimatorAngle());
+  this->IECLogic->UpdatePatientSupportRotationToFixedReferenceTransform(beamNode->GetCouchAngle());
 
   // Update IEC Patient to RAS transform based on the isocenter defined in the beam's parent plan
   vtkMRMLLinearTransformNode* rasToPatientReferenceTransformNode =
     this->GetTransformNodeBetween(vtkSlicerIECTransformLogic::RAS, vtkSlicerIECTransformLogic::Patient);
+  rasToPatientReferenceTransformNode->Modified();
   vtkTransform* rasToPatientReferenceTransform = vtkTransform::SafeDownCast(rasToPatientReferenceTransformNode->GetTransformToParent());
   rasToPatientReferenceTransform->Identity();
   // Apply isocenter translation
@@ -444,6 +448,7 @@ void vtkSlicerBeamsModuleLogic::UpdateFixedReferenceToRASTransform(vtkMRMLRTPlan
 
   // Update IEC FixedReference to RAS transform based on the isocenter defined in the beam's parent plan
   vtkMRMLLinearTransformNode* fixedReferenceToRasTransformNode = this->GetTransformNodeBetween(vtkSlicerIECTransformLogic::FixedReference, vtkSlicerIECTransformLogic::RAS);
+  fixedReferenceToRasTransformNode->Modified();
 
   // Apply isocenter translation
   vtkNew<vtkTransform> fixedReferenceToRASTransformBeamComponent;

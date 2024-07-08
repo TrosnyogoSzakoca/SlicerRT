@@ -32,7 +32,6 @@
 #include <array>
 
 
-
 //----------------------------------------------------------------------------
 vtkStandardNewMacro(vtkSlicerIECTransformLogic);
 
@@ -169,8 +168,12 @@ void vtkSlicerIECTransformLogic::BuildIECTransformHierarchy()
 //----------------------------------------------------------------------------
 void vtkSlicerIECTransformLogic::UpdateGantryToFixedReferenceTransform(double gantryRotationAngleDeg)
 {
+  std::cout << "gantryRotationAngleDeg: " << gantryRotationAngleDeg << std::endl;
   this->GantryToFixedReferenceTransform->Identity();
+  std::cout << "gantryRotationAngleDeg2: " << gantryRotationAngleDeg << std::endl;
   this->GantryToFixedReferenceTransform->RotateY(gantryRotationAngleDeg);
+  this->GantryToFixedReferenceTransform->Modified();
+  std::cout << "gantryRotationAngleDeg3: " << gantryRotationAngleDeg << std::endl;
 }
 
 //----------------------------------------------------------------------------
@@ -178,6 +181,7 @@ void vtkSlicerIECTransformLogic::UpdateCollimatorToGantryTransform(double collim
 {
   this->CollimatorToGantryTransform->Identity();
   this->CollimatorToGantryTransform->RotateZ(collimatorRotationAngleDeg);
+  this->CollimatorToGantryTransform->Modified();
 }
 
 //-----------------------------------------------------------------------------
@@ -185,6 +189,7 @@ void vtkSlicerIECTransformLogic::UpdatePatientSupportRotationToFixedReferenceTra
 {
   this->PatientSupportRotationToFixedReferenceTransform->Identity();
   this->PatientSupportRotationToFixedReferenceTransform->RotateZ(patientSupportRotationAngleDeg);
+  this->PatientSupportRotationToFixedReferenceTransform->Modified();
 }
 
 //-----------------------------------------------------------------------------
