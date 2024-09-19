@@ -30,7 +30,6 @@
 #include "vtkMRMLRoomsEyeViewNode.h"
 
 // Beams includes
-#include "vtkSlicerIECTransformLogic.h"
 #include "vtkMRMLRTBeamNode.h"
 #include "vtkMRMLRTPlanNode.h"
 

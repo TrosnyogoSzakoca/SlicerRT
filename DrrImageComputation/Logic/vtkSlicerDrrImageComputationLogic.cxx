@@ -45,7 +45,9 @@
 
 // SlicerRT Beams Logic includes
 #include <vtkSlicerBeamsModuleLogic.h>
-#include <vtkSlicerIECTransformLogic.h>
+
+// IEC Logic include
+#include <vtkIECTransformLogic.h>
 
 // SubjectHierarchy includes
 #include <vtkMRMLSubjectHierarchyConstants.h>
@@ -1664,7 +1666,7 @@ vtkMRMLLinearTransformNode* vtkSlicerDrrImageComputationLogic::UpdateImageTransf
       scene->GetFirstNodeByName(RTIMAGE_TRANSFORM_NODE_NAME));
   }
 
-  vtkNew<vtkSlicerIECTransformLogic> iecLogic;
+  vtkNew<vtkIECTransformLogic> iecLogic;
 
   // Update transforms in IEC logic from beam node parameters
   beamsLogic->UpdateIECTransformsFromBeam(beamNode);
@@ -1675,7 +1677,7 @@ vtkMRMLLinearTransformNode* vtkSlicerDrrImageComputationLogic::UpdateImageTransf
   // Dynamic transform from Gantry to RAS
   // Transformation path:
   // Gantry -> FixedReference -> PatientSupport -> TableTopEccentricRotation -> TableTop -> Patient -> RAS
-  using IEC = vtkSlicerIECTransformLogic::CoordinateSystemIdentifier;
+  using IEC = vtkIECTransformLogic::CoordinateSystemIdentifier;
   vtkNew<vtkGeneralTransform> generalTransform;
   if (iecLogic->GetTransformBetween(IEC::Gantry, IEC::RAS, generalTransform, true))
   {
@@ -1714,7 +1716,7 @@ bool vtkSlicerDrrImageComputationLogic::GetRtImageTransformMatrixFromBeam(vtkMRM
     return false;
   }
 
-  vtkNew<vtkSlicerIECTransformLogic> iecLogic;
+  vtkNew<vtkIECTransformLogic> iecLogic;
 
   // Update transforms in IEC logic from beam node parameters
   beamsLogic->UpdateIECTransformsFromBeam(beamNode);
@@ -1725,7 +1727,7 @@ bool vtkSlicerDrrImageComputationLogic::GetRtImageTransformMatrixFromBeam(vtkMRM
   // Dynamic transform from Gantry to RAS
   // Transformation path:
   // Gantry -> FixedReference -> PatientSupport -> TableTopEccentricRotation -> TableTop -> Patient -> RAS
-  using IEC = vtkSlicerIECTransformLogic::CoordinateSystemIdentifier;
+  using IEC = vtkIECTransformLogic::CoordinateSystemIdentifier;
   vtkNew<vtkGeneralTransform> generalTransform;
   if (iecLogic->GetTransformBetween(IEC::Gantry, IEC::RAS, generalTransform, true))
   {
